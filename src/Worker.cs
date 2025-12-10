@@ -1,3 +1,10 @@
+// CONTEXTO DO PROJETO:
+// Essa porcaria pega informações do PC (CPU, RAM, Disco, Rede)
+// e envia para um System Tray via Named Pipe (asset-monitor-pipe).
+// O tray faz (vai fazer) POST para o backend.
+// TODO: Melhorar coleta, incluir CPU model, RAM total, tráfego de rede.
+// TODO: Implementar reconexão do pipe e manejo de falhas de envio.
+
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
