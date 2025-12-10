@@ -1,3 +1,4 @@
 <Solution>
-  <Project Path="AssetManager.csproj" />
+  <Project Path="AssetManager.service/AssetManager.service.csproj" />
+  <Project Path="AssetManager.tray/AssetManager.tray.csproj" />
 </Solution>
