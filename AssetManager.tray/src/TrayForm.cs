@@ -11,6 +11,7 @@ namespace AssetManager.Tray
         private readonly NotifyIcon trayIcon;
         private readonly ContextMenuStrip trayMenu;
         private readonly HttpDebugService _httpDebugService = new();
+        private const string ServiceName = "AssetManager";
 
         public TrayForm()
         {
@@ -34,8 +35,53 @@ namespace AssetManager.Tray
             };
             _ = Task.Run(_httpDebugService.StartAsync);
             _ = Task.Run(PipeReadLoop);
+            EnsureServiceRunning();
         }
+        private void EnsureServiceRunning()
+        {
+            try
+            {
+                using var sc = new ServiceController(ServiceName);
 
+                if (sc.Status == ServiceControllerStatus.Stopped ||
+                    sc.Status == ServiceControllerStatus.StopPending)
+                {
+                    sc.Start();
+                    sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(15));
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Erro ao iniciar o serviço {ServiceName}.\n\n{ex.Message}",
+                    "AssetManager",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+            }
+        }
+        private void StopService()
+        {
+            try
+            {
+                using var sc = new ServiceController(ServiceName);
+
+                if (sc.Status == ServiceControllerStatus.Running)
+                {
+                    sc.Stop();
+                    sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(15));
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Erro ao parar o serviço {ServiceName}.\n\n{ex.Message}",
+                    "AssetManager",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+            }
+        }
         private void OnSendNow(object? sender, EventArgs e)
         {
             MessageBox.Show("Envio manual ainda não implementado.");
@@ -44,6 +90,7 @@ namespace AssetManager.Tray
         private void OnExit(object? sender, EventArgs e)
         {
             trayIcon.Visible = false;
+            StopService();
             Application.Exit();
         }
         private async Task PipeReadLoop()
