@@ -32,11 +32,11 @@ public class Worker : BackgroundService
     private string _latestJson = "{}";
 
     public Worker(
-     ILogger<Worker> logger,
-     ICpuMonitor cpu,
-     IMemoryMonitor mem,
-     IDiskMonitor disk,
-     INetworkMonitor net)
+    ILogger<Worker> logger,
+    ICpuMonitor cpu,
+    IMemoryMonitor mem,
+    IDiskMonitor disk,
+    INetworkMonitor net)
     {
         _logger = logger;
         _cpu = cpu;
