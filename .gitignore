@@ -367,6 +367,6 @@ FodyWeavers.xsd
 *.exe
 AssetManager.installer/Output
 
-# Environment files
-.env
+# Env
+.Env
 AssetManager.tray/appsettings.json
