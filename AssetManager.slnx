@@ -1,4 +1,15 @@
 <Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Itens de Solução/">
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path="README.md" />
+  </Folder>
   <Project Path="AssetManager.service/AssetManager.service.csproj" />
   <Project Path="AssetManager.tray/AssetManager.tray.csproj" />
 </Solution>

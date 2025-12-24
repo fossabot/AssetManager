@@ -7,7 +7,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddWindowsService(options =>
 {
-    options.ServiceName = "AssetManager";
+options.ServiceName = "AssetManager";
 });
 
 builder.Services.AddSingleton<ICpuMonitor, CpuMonitor>();

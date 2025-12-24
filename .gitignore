@@ -361,3 +361,12 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Installer projects output
+*.msi
+*.exe
+AssetManager.installer/Output
+
+# Env
+.Env
+AssetManager.tray/appsettings.json
