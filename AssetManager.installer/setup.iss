@@ -3,7 +3,7 @@
 ; Non-commercial use only
 
 #define MyAppName "AssetManager"
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.0.2"
 #define MyAppPublisher "Borgno"
 #define MyAppExeName "AssetManager.tray.exe"
 
@@ -30,9 +30,9 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only).
 ;PrivilegesRequired=lowest
-OutputDir=C:\Users\GYNTI-N03\source\repos\AssetManager\AssetManager.installer\Output
+OutputDir=Output
 OutputBaseFilename=assetmanager_installer
-; Compression=lzma
+Compression=lzma
 SolidCompression=yes
 WizardStyle=modern dynamic windows11
 
@@ -40,10 +40,16 @@ WizardStyle=modern dynamic windows11
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 
 [Files]
-Source: "C:\Users\GYNTI-N03\source\repos\AssetManager\AssetManager.tray\bin\Release\net10.0-windows\win-x64\*"; \
-DestDir: "{app}\tray"; Flags: ignoreversion
-Source: "C:\Users\GYNTI-N03\source\repos\AssetManager\AssetManager.service\bin\Release\net10.0-windows\win-x64\*"; \
+Source: "C:\Users\GYNTI-N03.GYNTI-N03\source\repos\AssetManager\AssetManager.tray\bin\Release\net10.0-windows\win-x64\*"; \
+DestDir: "{app}\tray"; Flags: ignoreversion; \
+Excludes: "appsettings.json, appsettings_example.json"
+
+Source: "C:\Users\GYNTI-N03.GYNTI-N03\source\repos\AssetManager\AssetManager.service\bin\Release\net10.0-windows\win-x64\*"; \
 DestDir: "{app}\service"; Flags: ignoreversion
+
+Source: "C:\Users\GYNTI-N03.GYNTI-N03\source\repos\AssetManager\AssetManager.tray\bin\Release\net10.0-windows\win-x64\appsettings_example.json"; \
+DestDir: "{app}\tray"; \
+DestName: "appsettings.json"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 ; [Icons]
@@ -51,24 +57,26 @@ DestDir: "{app}\service"; Flags: ignoreversion
 ; Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 
 [Run]
-; Criar o serviço
 Filename: "sc.exe"; \
 Parameters: "create AssetManager binPath= ""{app}\service\AssetManager.service.exe"" start= auto"; \
 Flags: runhidden
 
-; Iniciar o serviço
 Filename: "sc.exe"; \
 Parameters: "start AssetManager"; \
 Flags: runhidden
 
-; Criar tarefa agendada para o tray (SYSTEM, sem UAC)
 Filename: "schtasks.exe"; \
 Parameters: "/create /f /sc onlogon /rl highest /ru SYSTEM /tn ""AssetManagerTray"" /tr ""\""{app}\tray\AssetManager.tray.exe\"" """; \
 Flags: runhidden
 
-Filename: "{app}\tray\{#MyAppExeName}"; \
-Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; \
-Flags: nowait postinstall skipifsilent
+Filename: "powershell.exe"; \
+Parameters: "-ExecutionPolicy Bypass -Command ""$t = Get-ScheduledTask -TaskName 'AssetManagerTray'; $s = $t.Settings; $s.ExecutionTimeLimit = [TimeSpan]::Zero; $s.AllowStartIfOnBatteries = $true; $s.DontStopIfGoingOnBatteries = $true; Set-ScheduledTask -TaskName 'AssetManagerTray' -Settings $s"""; \
+Flags: runhidden
+
+; Iniciar o tray após a instalação
+;Filename: "{app}\tray\{#MyAppExeName}"; \
+;Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; \
+;Flags: postinstall skipifsilent
 
 [UninstallRun]
 ; Parar e remover serviço
@@ -76,4 +84,89 @@ Filename: "sc.exe"; Parameters: "stop AssetManager"; Flags: runhidden
 Filename: "sc.exe"; Parameters: "delete AssetManager"; Flags: runhidden
 
 ; Remover tarefa agendada
-Filename: "schtasks.exe"; Parameters: "/delete /f /tn ""AssetManagerTray"""; Flags: runhidden
+Filename: "schtasks.exe"; Parameters: "/end /tn ""AssetManagerTray"""; Flags: runhidden
+Filename: "schtasks.exe"; Parameters: "/delete /f /tn ""AssetManagerTray""" ; Flags: runhidden
+
+[Code]
+var
+  TokenPage: TInputQueryWizardPage;
+
+procedure InitializeWizard;
+begin
+  TokenPage := CreateInputQueryPage(wpWelcome,
+    'Configuração da API', 'Autenticação do Agente',
+    'Insira a URL e o Token de acesso da API para que o AssetManager possa enviar os dados.');
+  TokenPage.Add('URL da API:', False);
+  TokenPage.Add('API Token:', False);
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  if (PageID = TokenPage.ID) and FileExists(ExpandConstant('{src}\appsettings.json')) then
+    Result := True
+  else
+    Result := False;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  JsonDestino: String;
+  JsonOrigem: String;
+  FileContentAnsi: AnsiString;
+  FileContentString: String;
+  UserUrl: String;
+  UserToken: String;
+  HouveAlteracao: Boolean;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    JsonDestino := ExpandConstant('{app}\tray\appsettings.json');
+    JsonOrigem := ExpandConstant('{src}\appsettings.json');
+    HouveAlteracao := False;
+
+    if FileExists(JsonOrigem) then
+    begin
+      Log('Arquivo appsettings.json encontrado na origem. Copiando...');
+      if FileCopy(JsonOrigem, JsonDestino, False) then
+        Log('Configuração importada automaticamente.')
+      else
+        Log('Falha ao copiar configuração automática.');
+    end
+    
+    else
+    begin
+      if (TokenPage <> nil) then
+      begin
+        UserUrl := TokenPage.Values[0];
+        UserToken := TokenPage.Values[1];
+      end
+      else
+      begin
+        UserUrl := '';
+        UserToken := '';
+      end;
+      if FileExists(JsonDestino) then
+      begin
+        if LoadStringFromFile(JsonDestino, FileContentAnsi) then
+        begin
+          FileContentString := String(FileContentAnsi);
+          if (UserUrl <> '') and (StringChange(FileContentString, '{{URL}}', UserUrl) > 0) then
+          begin
+            HouveAlteracao := True;
+            Log('URL atualizada.');
+          end;
+          if (UserToken <> '') and (StringChange(FileContentString, '{{TOKEN}}', UserToken) > 0) then
+          begin
+            HouveAlteracao := True;
+            Log('Token atualizado.');
+          end;
+          if HouveAlteracao then
+          begin
+            SaveStringToFile(JsonDestino, AnsiString(FileContentString), False);
+            Log('Arquivo JSON salvo com sucesso.');
+          end;
+        end;
+      end;
+    end;
+  end;
+end;
