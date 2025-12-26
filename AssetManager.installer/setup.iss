@@ -3,7 +3,7 @@
 ; Non-commercial use only
 
 #define MyAppName "AssetManager"
-#define MyAppVersion "1.0.2"
+#define MyAppVersion "1.0.5"
 #define MyAppPublisher "Borgno"
 #define MyAppExeName "AssetManager.tray.exe"
 
@@ -50,6 +50,10 @@ DestDir: "{app}\service"; Flags: ignoreversion
 Source: "C:\Users\GYNTI-N03.GYNTI-N03\source\repos\AssetManager\AssetManager.tray\bin\Release\net10.0-windows\win-x64\appsettings_example.json"; \
 DestDir: "{app}\tray"; \
 DestName: "appsettings.json"; Flags: ignoreversion
+
+Source: "C:\Users\GYNTI-N03.GYNTI-N03\source\repos\AssetManager\AssetManager.installer\AssetManagerTray.xml"; \
+DestDir: "{tmp}"; Flags: ignoreversion
+
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 ; [Icons]
@@ -66,11 +70,7 @@ Parameters: "start AssetManager"; \
 Flags: runhidden
 
 Filename: "schtasks.exe"; \
-Parameters: "/create /f /sc onlogon /rl highest /ru SYSTEM /tn ""AssetManagerTray"" /tr ""\""{app}\tray\AssetManager.tray.exe\"" """; \
-Flags: runhidden
-
-Filename: "powershell.exe"; \
-Parameters: "-ExecutionPolicy Bypass -Command ""$t = Get-ScheduledTask -TaskName 'AssetManagerTray'; $s = $t.Settings; $s.ExecutionTimeLimit = [TimeSpan]::Zero; $s.AllowStartIfOnBatteries = $true; $s.DontStopIfGoingOnBatteries = $true; Set-ScheduledTask -TaskName 'AssetManagerTray' -Settings $s"""; \
+Parameters: "/Create /XML ""{tmp}\AssetManagerTray.xml"" /TN ""AssetManagerTray"" /F"; \
 Flags: runhidden
 
 ; Iniciar o tray após a instalação
